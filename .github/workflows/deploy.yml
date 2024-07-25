@@ -1,0 +1,41 @@
+name: Deploy
+
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+
+permissions:
+  id-token: write
+  contents: write 
+
+env:
+  RELEASE_DIR: "dist"
+  PROJECT: "src/Reddit.NET/Reddit.NET.csproj"
+
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore $PROJECT
+
+    - name: Build
+      run: dotnet build --no-restore -c Release $PROJECT
+
+    - name: Publish
+      run: dotnet publish -c Release -r linux-x64 -o $RELEASE_DIR $PROJECT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ${{ENV.RELEASE_DIR}}/Reddit.NET.dll
+          ${{ENV.RELEASE_DIR}}/Reddit.NET.pdb
